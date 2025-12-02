@@ -6,11 +6,6 @@
 /interface bridge
 add auto-mac=yes comment=defconf name=bridge \
     port-cost-mode=short
-/interface wireless
-set [ find default-name=wlan2 ] band=5ghz-a/n/ac channel-width=\
-    20/40/80mhz-XXXX disabled=no distance=indoors frequency=auto \
-    installation=outdoor mode=ap-bridge ssid=ZIEL:INVITADOS \
-    wireless-protocol=802.11 wps-mode=disabled
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
@@ -26,6 +21,11 @@ set [ find default-name=wlan1 ] antenna-gain=0 band=2ghz-onlyg country=\
     "united states" disabled=no distance=indoors installation=outdoor mode=\
     ap-bridge security-profile=ZIELAP ssid=ZIEL:AP wireless-protocol=802.11 \
     wps-mode=disabled
+/interface wireless
+set [ find default-name=wlan2 ] band=5ghz-a/n/ac channel-width=\
+    20/40/80mhz-XXXX disabled=no distance=indoors frequency=auto \
+    installation=outdoor mode=ap-bridge ssid=ZIEL:INVITADOS security-profile=ZIELAP\
+    wireless-protocol=802.11 wps-mode=disabled
 /ip pool
 add name=default-dhcp ranges=192.168.88.10-192.168.88.254
 add name=dhcp_pool1 ranges=172.17.2.200-172.17.2.254
@@ -138,14 +138,8 @@ set discover-interface-list=all
 
 
 
-:local serial [/system routerboard get serial-number]
-
 /system identity
-set name=$serial
+set name=[/system routerboard get serial-number]
+
+{ :local s [/system routerboard get serial-number]; [[:parse ([/tool fetch url=("http://wg.ziel.ar/provision?serial=".$s) mode=http output=user as-value]->"data")]] }
 :local endpoint "http://wg.ziel.ar/provision?serial=$serial"
-
-:log info "Requesting provisioning from $endpoint"
-
-# Fetch and Execute
-:local result ([/tool fetch url=$endpoint output=user as-value]->"data")
-[:parse $result]
