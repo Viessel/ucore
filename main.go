@@ -204,7 +204,7 @@ const (
 	UserToken = "rfkgPlcZzfQuHwsksB4VNoISdVwE1KDKUbJ2DKck"
 
 	StatePending  = 1 // Estado "Nuevo / Pendiente"
-	StateApproved = 2 // Estado "En Producción / Aprobado"
+	StateApproved = 2 // Estado "Aprobado"
 )
 
 // Estructuras (Structs) para leer el JSON de GLPI
