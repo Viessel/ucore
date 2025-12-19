@@ -197,25 +197,14 @@ func isValidSerial(s string) bool {
 	return match
 }
 
-//import (
-//	"bytes"
-//	"encoding/json"
-//	"fmt"
-//	"io"
-//	"log"
-//	"net/http"
-//	"net/url"
-//)
-
-// --- CONFIGURACIÓN ---
 const (
-	GLPIBaseURL = "http://go.ziel.ar/api.php/v1"
+	GLPIBaseURL = "http://127.0.0.1:8080/api.php/v1"
 
 	AppToken  = "02sq17hxC1Iy7yIbTklrZsNSitUonXs2TSoptkL9"
 	UserToken = "rfkgPlcZzfQuHwsksB4VNoISdVwE1KDKUbJ2DKck"
 
 	StatePending  = 1 // Estado "Nuevo / Pendiente"
-	StateApproved = 3 // Estado "En Producción / Aprobado"
+	StateApproved = 2 // Estado "En Producción / Aprobado"
 )
 
 // Estructuras (Structs) para leer el JSON de GLPI
@@ -248,9 +237,11 @@ func provisionHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "# Error interno conectando a inventario", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("Session token: %v", sessionToken)
 	// Al terminar, cerramos sesión para no saturar GLPI
-	defer glpiKillSession(sessionToken)
+	//defer glpiKillSession(sessionToken)
 
+	
 	// 3. Buscar el dispositivo por Serial
 	device, err := glpiFindDevice(sessionToken, serial)
 	if err != nil {
@@ -369,12 +360,12 @@ func glpiFindDevice(token, serial string) (*NetworkEquipment, error) {
 func glpiCreateDevice(token, serial string) error {
 	// JSON para crear el equipo
 	payload := map[string]any{
-		"input": map[string]any{
+		"input": []map[string]any{{
 			"name":      "Mikrotik-" + serial,
 			"serial":    serial,
 			"states_id": StatePending,
 		},
-	}
+	}}
 	jsonPayload, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest("POST", GLPIBaseURL+"/NetworkEquipment", bytes.NewBuffer(jsonPayload))

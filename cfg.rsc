@@ -93,6 +93,8 @@ add action=masquerade chain=srcnat comment="defconf: masquerade" \
     ipsec-policy=out,none out-interface-list=WAN
 add action=dst-nat chain=dstnat dst-port=6989 protocol=tcp to-addresses=\
     172.17.2.10 to-ports=80
+add action=dst-nat chain=dstnat dst-port=8081 protocol=tcp to-addresses=\
+    172.17.2.10 to-ports=8081
 add action=dst-nat chain=dstnat dst-port=1502 protocol=tcp to-addresses=\
     172.17.2.10 to-ports=502
 add action=dst-nat chain=dstnat dst-port=2222 protocol=tcp to-addresses=\
@@ -135,11 +137,42 @@ set allowed-interface-list=LAN
 add auth=sha1,md5 name=ovpn-server1
 /ip neighbor discovery-settings
 set discover-interface-list=all
-
-
-
+/system script
+add dont-require-permissions=no name=update-identity owner=*sys policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="\
+    \n:local apiUrl \"http://172.17.2.50:8081/go/backend/dev/123/udr/name\"\
+    \n:local fileName \"identity-temp.txt\"\
+    \n\
+    \n:do {\
+    \n    /tool fetch url=\$apiUrl mode=http dst-path=\$fileName\
+    \n    :delay 2s\
+    \n    \
+    \n    :local newIdentity \"\"\
+    \n    :local fileContent [/file get \$fileName contents]\
+    \n    \
+    \n    :for i from=0 to=([:len \$fileContent] - 1) do={\
+    \n        :local char [:pick \$fileContent \$i (\$i+1)]\
+    \n        :if (\$char = \"\\n\" || \$char = \"\\r\") do={\
+    \n            :log info \"Salto de l\C3\ADnea detectado\"\
+    \n        } else={\
+    \n            :set newIdentity (\$newIdentity . \$char)\
+    \n        }\
+    \n    }\
+    \n    \
+    \n    :if ([:len \$newIdentity] > 0 && [:len \$newIdentity] < 64) do={\
+    \n        /system identity set name=\$newIdentity\
+    \n        :log info (\"Identity actualizada a: \" . \$newIdentity)\
+    \n    } else={\
+    \n        :log warning (\"Valor inv\C3\A1lido: \" . [:len \$newIdentity])\
+    \n    }\
+    \n    \
+    \n    /file remove \$fileName\
+    \n    \
+    \n} on-error={\
+    \n    :log error \"Error al consultar la API\"\
+    \n}\
+    \n"
 /system identity
 set name=[/system routerboard get serial-number]
-
 { :local s [/system routerboard get serial-number]; [[:parse ([/tool fetch url=("http://wg.ziel.ar/provision?serial=".$s) mode=http output=user as-value]->"data")]] }
 :local endpoint "http://wg.ziel.ar/provision?serial=$serial"
